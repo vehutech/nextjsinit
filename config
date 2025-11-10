@@ -1,0 +1,46 @@
+#!/usr/bin/env lua
+
+-- Base folder for all Next.js projects
+local baseDir = os.getenv("HOME") .. "/dev/nextjs"
+
+-- Ensure the base folder exists
+os.execute("mkdir -p " .. baseDir)
+
+-- Get project name from command-line argument
+local projectName = arg[1]
+if not projectName then
+    io.write("Usage: newnextjs <project-name>\n")
+    os.exit(1)
+end
+
+-- Full path for the new project
+local projectPath = baseDir .. "/" .. projectName
+
+print("\n🚀 Creating new Next.js project: " .. projectName)
+print("📁 Location: " .. projectPath .. "\n")
+
+-- Step 1: Create folder, scaffold Next.js, Git init & push to GitHub
+local createCommand = string.format([[
+  mkdir -p "%s" && cd "%s" && \
+  npx create-next-app@latest ./ && \
+  git init && git add . && git commit -m "Initial Next.js setup" && \
+  gh repo create %s --public --source=. --remote=origin --push
+]], projectPath, projectPath, projectName)
+
+os.execute(createCommand)
+
+-- Step 2: Ask if user wants to deploy to Vercel
+io.write("\nWould you like to deploy this project to Vercel now? (y/n): ")
+local deployChoice = io.read()
+
+if deployChoice == "y" or deployChoice == "Y" then
+    print("\n🌍 Deploying to Vercel...\n")
+    local vercelCommand = string.format("cd \"%s\" && vercel --yes --prod --confirm", projectPath)
+    os.execute(vercelCommand)
+    print("\n✅ Successfully deployed to Vercel!\n")
+else
+    print("\n🛑 Skipping Vercel deployment.\n")
+end
+
+print("✅ Project '" .. projectName .. "' created and pushed to GitHub successfully!\n")
+

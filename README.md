@@ -1,10 +1,12 @@
 # nextjsinit
 
-A blazingly fast, intelligent CLI tool for scaffolding Next.js projects with automatic GitHub repo creation and optional Vercel deployment.
+A blazingly fast, intelligent CLI tool for scaffolding Next.js projects with automatic GitHub repo creation and optional Vercel deployment. Written in Rust 🦀
 
 ## 🚀 Features
 
 - **Smart detection** - Automatically detects existing components (Next.js, Git, GitHub, Vercel)
+- **Git-GitHub validation** - Verifies local Git is connected to GitHub before deployment
+- **Push verification** - Checks for unpushed commits and offers to push automatically
 - **Interactive mode** - Choose specific operations when no project name is provided
 - **Zero-config setup** - Create a Next.js project with one command
 - **Automatic GitHub integration** - Creates and pushes to a new GitHub repository
@@ -13,6 +15,8 @@ A blazingly fast, intelligent CLI tool for scaffolding Next.js projects with aut
 - **Organized workspace** - All projects stored in `~/dev/nextjs/`
 - **Idempotent operations** - Safely skip already-completed steps
 - **Input validation** - Validates all user responses before proceeding
+- **Robust Next.js detection** - Supports `.js`, `.mjs`, and `.ts` config files
+- **Zero runtime dependencies** - Single compiled binary, no interpreter needed
 
 ## 📋 Prerequisites
 
@@ -51,7 +55,7 @@ Before using `nextjsinit`, ensure you have the following installed:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/nextjsinit.git
+git clone https://github.com/vehutech/nextjsinit.git
 cd nextjsinit
 
 # Build and install (automatically installs to ~/.cargo/bin)
@@ -66,7 +70,7 @@ cargo install --path .
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/nextjsinit.git
+git clone https://github.com/vehutech/nextjsinit.git
 cd nextjsinit
 
 # Build release binary
@@ -83,7 +87,7 @@ which nextjsinit
 
 ```bash
 # Download from GitHub releases
-curl -L https://github.com/yourusername/nextjsinit/releases/latest/download/nextjsinit-macos -o nextjsinit
+curl -L https://github.com/vehutech/nextjsinit/releases/latest/download/nextjsinit-macos -o nextjsinit
 chmod +x nextjsinit
 sudo mv nextjsinit /usr/local/bin/
 ```
@@ -126,7 +130,9 @@ When run without arguments, `nextjsinit` enters interactive mode:
 📊 Current Status:
   Next.js Project: ✅
   Git Initialized: ✅
-  GitHub Repo: ❌
+  GitHub Repo: ✅
+  Git → GitHub Connected: ✅
+  All Changes Pushed: ⚠️
   Vercel Deployed: ❌
 
 What would you like to do?
@@ -198,6 +204,29 @@ nextjsinit
 # Choose option 5: Vercel deployment only
 ```
 
+**Smart validation:**
+```
+❌ Git is not initialized. Please initialize Git first (option 3).
+
+# After fixing Git:
+❌ GitHub repository doesn't exist. Please create it first (option 4).
+
+# After fixing GitHub:
+❌ Local Git is not connected to GitHub.
+   Run: git remote add origin https://github.com/YOUR_USERNAME/my-project.git
+
+# After connecting:
+⚠️  Warning: You have unpushed changes.
+Push changes to GitHub before deploying? (y/n): y
+
+📤 Pushing changes to GitHub...
+✅ Changes pushed successfully!
+
+🌍 Deploying to Vercel...
+✅ Successfully deployed to Vercel!
+🔗 URL: https://my-project-xyz123.vercel.app
+```
+
 #### 4. Skip Existing Components
 
 ```bash
@@ -223,19 +252,32 @@ Would you like to deploy this project to Vercel now? (y/n): n
 
 `nextjsinit` automatically detects:
 - Existing project directories
-- Next.js project configuration
+- Next.js project configuration (`.js`, `.mjs`, `.ts` variants)
 - Git initialization status
 - GitHub repository existence
+- Git remote connection to GitHub
+- Unpushed commits
 - Vercel deployment status
 
-### 2. Input Validation
+### 2. Pre-deployment Validation
+
+Before Vercel deployment, `nextjsinit` verifies:
+1. ✅ Vercel CLI is installed
+2. ✅ Git is initialized
+3. ✅ GitHub repository exists
+4. ✅ Local Git is connected to the correct GitHub repo
+5. ✅ All changes are pushed (or offers to push automatically)
+
+This prevents deployment failures and ensures code consistency.
+
+### 3. Input Validation
 
 All user inputs are validated:
 - Yes/no prompts only accept `y/Y/n/N`
 - Menu choices must be valid numbers
 - Invalid inputs trigger helpful error messages
 
-### 3. Idempotent Operations
+### 4. Idempotent Operations
 
 Running `nextjsinit` multiple times safely skips completed steps:
 - Won't recreate existing directories
@@ -243,11 +285,11 @@ Running `nextjsinit` multiple times safely skips completed steps:
 - Won't create duplicate GitHub repositories
 - Warns before redeploying to Vercel
 
-### 4. Context Awareness
+### 5. Context Awareness
 
 When run without arguments, `nextjsinit`:
 - Detects if you're in a project directory
-- Shows current project status
+- Shows current project status with connection details
 - Offers relevant operations based on current state
 
 ## ⚙️ Configuration
@@ -334,6 +376,37 @@ gh auth login --web
 
 Make sure you're entering exactly `y` or `n` (lowercase or uppercase) for yes/no prompts, and valid numbers for menu choices.
 
+### Vercel Deployment Fails
+
+Check the pre-deployment validation:
+```bash
+# Verify Git is connected to GitHub
+git remote -v
+
+# Should show:
+# origin  https://github.com/username/project.git (fetch)
+# origin  https://github.com/username/project.git (push)
+
+# Check for unpushed commits
+git status
+
+# Push if needed
+git push origin main
+```
+
+### "Local Git is not connected to GitHub"
+
+```bash
+# Add GitHub remote manually
+git remote add origin https://github.com/YOUR_USERNAME/PROJECT_NAME.git
+
+# Verify
+git remote -v
+
+# Push
+git push -u origin main
+```
+
 ## 🎮 Interactive Mode Options
 
 | Option | Description | When to Use |
@@ -386,6 +459,10 @@ MIT License - see [LICENSE](LICENSE) file for details
 - [x] Public/private repo selection
 - [x] Input validation
 - [x] Vercel URL extraction
+- [x] Git-GitHub connection validation
+- [x] Unpushed commits detection
+- [x] Automatic push before deployment
+- [x] Robust Next.js config detection (.js/.mjs/.ts)
 - [ ] Template support (blog, e-commerce, dashboard)
 - [ ] Command-line flags (`--skip-github`, `--skip-vercel`, etc.)
 - [ ] Integration with other platforms (Netlify, Railway)
@@ -393,7 +470,9 @@ MIT License - see [LICENSE](LICENSE) file for details
 - [ ] Database initialization (Prisma, Supabase)
 - [ ] Automated testing setup
 - [ ] CI/CD pipeline templates
+- [ ] Pre-commit hooks configuration
+- [ ] Environment variable management
 
 ---
 
-**Made with ❤️ by developers, for developers**
+**Made with ❤️ by vehutech, for developers**

@@ -24,7 +24,7 @@ local createCommand = string.format([[
   mkdir -p "%s" && cd "%s" && \
   npx create-next-app@latest ./ && \
   git init && git add . && git commit -m "Initial Next.js setup" && \
-  gh repo create %s --public --source=. --remote=origin --push
+  gh repo create %s --private --source=. --remote=origin --push
 ]], projectPath, projectPath, projectName)
 
 os.execute(createCommand)

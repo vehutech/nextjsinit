@@ -241,7 +241,26 @@ fn check_project_status(paths: &ProjectPaths) -> ProjectStatus {
 }
 
 fn check_nextjs_project(path: &Path) -> bool {
-    path.join("package.json").exists() && path.join("next.config.js").exists()
+    // Must have package.json
+    if !path.join("package.json").exists() {
+        return false;
+    }
+    
+    // Check for any Next.js config file variant
+    let has_config = path.join("next.config.js").exists()
+        || path.join("next.config.mjs").exists()
+        || path.join("next.config.ts").exists();
+    
+    if has_config {
+        return true;
+    }
+    
+    // Fallback: check package.json for "next" dependency
+    if let Ok(contents) = fs::read_to_string(path.join("package.json")) {
+        return contents.contains("\"next\"");
+    }
+    
+    false
 }
 
 fn check_git_init(path: &Path) -> bool {

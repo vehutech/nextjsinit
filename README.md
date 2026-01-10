@@ -18,7 +18,6 @@ A blazingly fast, intelligent CLI tool for scaffolding Next.js projects with aut
 
 Before using `nextjsinit`, ensure you have the following installed:
 
-- **Lua 5.1+** - The script runtime
 - **Node.js & npm** - Required for Next.js
 - **Git** - Version control
 - **GitHub CLI (`gh`)** - For automatic repo creation
@@ -37,39 +36,68 @@ Before using `nextjsinit`, ensure you have the following installed:
   vercel login
   ```
 
+**Note:** The `nextjsinit` binary itself has no runtime dependencies once compiled!
+
 ## 🔧 Installation
 
-### Method 1: Direct Download
+### Prerequisites for Building
+
+- **Rust & Cargo** - Install from [rustup.rs](https://rustup.rs)
+  ```bash
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+  ```
+
+### Method 1: Install from Source
 
 ```bash
-# Download the script
-curl -O https://raw.githubusercontent.com/vehutech/nextjsinit/main/nextjsinit
+# Clone the repository
+git clone https://github.com/yourusername/nextjsinit.git
+cd nextjsinit
 
-# Make it executable
-chmod +x nextjsinit
+# Build and install (automatically installs to ~/.cargo/bin)
+cargo install --path .
 
-# Move to your PATH
-sudo mv nextjsinit /usr/local/bin/
+# Make sure ~/.cargo/bin is in your PATH
+# Add to ~/.zshrc or ~/.bashrc:
+# export PATH="$HOME/.cargo/bin:$PATH"
 ```
 
-### Method 2: Clone Repository
+### Method 2: Build and Copy Manually
 
 ```bash
-git clone https://github.com/vehutech/nextjsinit.git
+# Clone the repository
+git clone https://github.com/yourusername/nextjsinit.git
 cd nextjsinit
+
+# Build release binary
+cargo build --release
+
+# Copy to system path
+sudo cp target/release/nextjsinit /usr/local/bin/
+
+# Verify installation
+which nextjsinit
+```
+
+### Method 3: Download Pre-built Binary (Coming Soon)
+
+```bash
+# Download from GitHub releases
+curl -L https://github.com/yourusername/nextjsinit/releases/latest/download/nextjsinit-macos -o nextjsinit
 chmod +x nextjsinit
-sudo ln -s $(pwd)/nextjsinit /usr/local/bin/nextjsinit
+sudo mv nextjsinit /usr/local/bin/
 ```
 
 ### Renaming from Previous Version
 
-If you have `newnextjs` installed:
+If you have the Lua version of `newnextjs` or `nextjsinit` installed:
 
 ```bash
 # Remove old version
 sudo rm /usr/local/bin/newnextjs
+sudo rm /usr/local/bin/nextjsinit  # if Lua version exists
 
-# Install new version as shown above
+# Install new Rust version as shown above
 ```
 
 ## 📖 Usage
@@ -348,8 +376,8 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 ## 📮 Support
 
-- **Issues**: [GitHub Issues](https://github.com/vehutech/nextjsinit/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/vehutech/nextjsinit/discussions)
+- **Issues**: [GitHub Issues](https://github.com/yourusername/nextjsinit/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/nextjsinit/discussions)
 
 ## 🔮 Roadmap
 
@@ -368,4 +396,4 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 ---
 
-**Made with ❤️ by vehutech, for developers**
+**Made with ❤️ by developers, for developers**

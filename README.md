@@ -1,18 +1,22 @@
-#nextjsinit
+# nextjsinit
 
-A blazingly fast CLI tool for scaffolding Next.js projects with automatic GitHub repo creation and optional Vercel deployment.
+A blazingly fast, intelligent CLI tool for scaffolding Next.js projects with automatic GitHub repo creation and optional Vercel deployment.
 
 ## 🚀 Features
 
+- **Smart detection** - Automatically detects existing components (Next.js, Git, GitHub, Vercel)
+- **Interactive mode** - Choose specific operations when no project name is provided
 - **Zero-config setup** - Create a Next.js project with one command
 - **Automatic GitHub integration** - Creates and pushes to a new GitHub repository
-- **Optional Vercel deployment** - Deploy to production immediately after setup
+- **Public/Private repo selection** - Choose repository visibility interactively
+- **Optional Vercel deployment** - Deploy to production with URL extraction
 - **Organized workspace** - All projects stored in `~/dev/nextjs/`
-- **Interactive prompts** - User-friendly deployment workflow
+- **Idempotent operations** - Safely skip already-completed steps
+- **Input validation** - Validates all user responses before proceeding
 
 ## 📋 Prerequisites
 
-Before using `newnextjs`, ensure you have the following installed:
+Before using `nextjsinit`, ensure you have the following installed:
 
 - **Lua 5.1+** - The script runtime
 - **Node.js & npm** - Required for Next.js
@@ -39,22 +43,33 @@ Before using `newnextjs`, ensure you have the following installed:
 
 ```bash
 # Download the script
-curl -O https://raw.githubusercontent.com/yourusername/newnextjs/main/newnextjs
+curl -O https://raw.githubusercontent.com/vehutech/nextjsinit/main/nextjsinit
 
 # Make it executable
-chmod +x newnextjs
+chmod +x nextjsinit
 
 # Move to your PATH
-sudo mv newnextjs /usr/local/bin/
+sudo mv nextjsinit /usr/local/bin/
 ```
 
 ### Method 2: Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/newnextjs.git
-cd newnextjs
-chmod +x newnextjs
-sudo ln -s $(pwd)/newnextjs /usr/local/bin/newnextjs
+git clone https://github.com/vehutech/nextjsinit.git
+cd nextjsinit
+chmod +x nextjsinit
+sudo ln -s $(pwd)/nextjsinit /usr/local/bin/nextjsinit
+```
+
+### Renaming from Previous Version
+
+If you have `newnextjs` installed:
+
+```bash
+# Remove old version
+sudo rm /usr/local/bin/newnextjs
+
+# Install new version as shown above
 ```
 
 ## 📖 Usage
@@ -62,46 +77,156 @@ sudo ln -s $(pwd)/newnextjs /usr/local/bin/newnextjs
 ### Basic Command
 
 ```bash
-newnextjs <project-name>
+nextjsinit <project-name>
 ```
 
-### Example
+### Interactive Mode (No Arguments)
 
 ```bash
-newnextjs my-awesome-app
+nextjsinit
 ```
 
-### What Happens
+When run without arguments, `nextjsinit` enters interactive mode:
 
-1. **Creates project directory** at `~/dev/nextjs/my-awesome-app`
-2. **Scaffolds Next.js** using `create-next-app@latest`
-3. **Initializes Git** repository
-4. **Creates GitHub repository** (public by default)
-5. **Pushes initial commit** to GitHub
-6. **Prompts for Vercel deployment** (optional)
-
-### Interactive Flow
-
+**If you're in a Next.js project directory:**
 ```
-🚀 Creating new Next.js project: my-awesome-app
+🔍 Detected current project: my-app
+
+🎯 Interactive Mode
+📁 Current location: /Users/you/dev/nextjs/my-app
+
+📊 Current Status:
+  Next.js Project: ✅
+  Git Initialized: ✅
+  GitHub Repo: ❌
+  Vercel Deployed: ❌
+
+What would you like to do?
+1. Full setup (Next.js + Git + GitHub + Vercel)
+2. Next.js project bootstrapping only
+3. Git initialization only
+4. GitHub repository creation only
+5. Vercel deployment only
+6. Exit
+
+Enter your choice (1-6):
+```
+
+**If you're not in a project directory:**
+```
+🤔 No project name provided and not in a Next.js project directory.
+
+Enter project name: my-new-app
+```
+
+### Example Workflows
+
+#### 1. Create New Project (Full Setup)
+
+```bash
+nextjsinit my-awesome-app
+```
+
+**Output:**
+```
+🚀 Initializing project: my-awesome-app
 📁 Location: /Users/you/dev/nextjs/my-awesome-app
 
+📁 Creating project directory...
+
+🚀 Creating Next.js project: my-awesome-app
 [Next.js setup output...]
-[GitHub repo creation output...]
+✅ Next.js project created successfully!
+
+📦 Initializing Git repository...
+✅ Git initialized successfully!
+
+🐙 Creating GitHub repository...
+Should the GitHub repository be public? (y/n): y
+✅ GitHub repository created and pushed successfully!
 
 Would you like to deploy this project to Vercel now? (y/n): y
 
 🌍 Deploying to Vercel...
-
 ✅ Successfully deployed to Vercel!
-✅ Project 'my-awesome-app' created and pushed to GitHub successfully!
+🔗 URL: https://my-awesome-app-xyz123.vercel.app
+
+✅ Project 'my-awesome-app' setup complete!
 ```
+
+#### 2. Add GitHub to Existing Project
+
+```bash
+cd ~/dev/nextjs/existing-project
+nextjsinit
+# Choose option 4: GitHub repository creation only
+```
+
+#### 3. Deploy Existing Project to Vercel
+
+```bash
+cd ~/dev/nextjs/my-project
+nextjsinit
+# Choose option 5: Vercel deployment only
+```
+
+#### 4. Skip Existing Components
+
+```bash
+nextjsinit existing-project
+```
+
+**Output:**
+```
+📁 Project directory already exists.
+⚠️  Next.js project already exists, skipping creation.
+⚠️  Git already initialized, skipping.
+⚠️  GitHub repository already exists, skipping creation.
+
+Would you like to deploy this project to Vercel now? (y/n): n
+🛑 Skipping Vercel deployment.
+
+✅ Project 'existing-project' setup complete!
+```
+
+## 🎯 Smart Features
+
+### 1. Automatic Detection
+
+`nextjsinit` automatically detects:
+- Existing project directories
+- Next.js project configuration
+- Git initialization status
+- GitHub repository existence
+- Vercel deployment status
+
+### 2. Input Validation
+
+All user inputs are validated:
+- Yes/no prompts only accept `y/Y/n/N`
+- Menu choices must be valid numbers
+- Invalid inputs trigger helpful error messages
+
+### 3. Idempotent Operations
+
+Running `nextjsinit` multiple times safely skips completed steps:
+- Won't recreate existing directories
+- Won't reinitialize Git if already done
+- Won't create duplicate GitHub repositories
+- Warns before redeploying to Vercel
+
+### 4. Context Awareness
+
+When run without arguments, `nextjsinit`:
+- Detects if you're in a project directory
+- Shows current project status
+- Offers relevant operations based on current state
 
 ## ⚙️ Configuration
 
 ### Change Base Directory
 
-Edit line 3 in the script:
+Edit line 4 in the script:
 
 ```lua
 local baseDir = os.getenv("HOME") .. "/dev/nextjs"
@@ -109,48 +234,17 @@ local baseDir = os.getenv("HOME") .. "/dev/nextjs"
 local baseDir = os.getenv("HOME") .. "/projects"
 ```
 
-### Private GitHub Repositories
+### Customize Next.js Options
 
-Replace `--public` with `--private` on line 24:
-
-```lua
-gh repo create %s --private --source=. --remote=origin --push
-```
-
-### Auto-deploy Without Prompt
-
-Replace the interactive deployment section with:
+Modify the `createNextJsProject` function (around line 95):
 
 ```lua
-print("\n🌍 Auto-deploying to Vercel...\n")
-local vercelCommand = string.format("cd \"%s\" && vercel --yes --prod --confirm", projectPath)
-os.execute(vercelCommand)
+local cmd = string.format("cd \"%s\" && npx create-next-app@latest ./ --typescript --tailwind --app", projectPath)
 ```
-
-## 🎯 Advanced Usage
-
-### With Custom Next.js Options
-
-The script uses default `create-next-app` settings. To customize, modify line 17:
-
-```lua
-npx create-next-app@latest ./ --typescript --tailwind --app --src-dir
-```
-
-### Multiple Next.js Versions
-
-```bash
-# For specific version
-npx create-next-app@14.1.0 ./
-```
-
-### Skip Vercel Deployment Prompt
-
-Press `n` when prompted, or modify the script to auto-skip.
 
 ## 🗂️ Project Structure
 
-After running `newnextjs my-app`:
+After running `nextjsinit my-app`:
 
 ```
 ~/dev/nextjs/
@@ -167,14 +261,15 @@ After running `newnextjs my-app`:
 
 ## 🐛 Troubleshooting
 
-### "command not found: newnextjs"
+### "command not found: nextjsinit"
 
 Ensure the script is in your `$PATH`:
 
 ```bash
 echo $PATH
 # Move script to a directory in PATH
-sudo mv newnextjs /usr/local/bin/
+sudo mv nextjsinit /usr/local/bin/
+chmod +x /usr/local/bin/nextjsinit
 ```
 
 ### "gh: command not found"
@@ -182,7 +277,8 @@ sudo mv newnextjs /usr/local/bin/
 Install GitHub CLI:
 
 ```bash
-brew install gh  # or appropriate package manager
+brew install gh  # macOS
+sudo apt install gh  # Ubuntu/Debian
 gh auth login
 ```
 
@@ -196,7 +292,7 @@ vercel login
 ### Permission Denied
 
 ```bash
-chmod +x /usr/local/bin/newnextjs
+chmod +x /usr/local/bin/nextjsinit
 ```
 
 ### GitHub Authentication Failed
@@ -205,6 +301,21 @@ chmod +x /usr/local/bin/newnextjs
 gh auth status
 gh auth login --web
 ```
+
+### "Invalid input" Loop
+
+Make sure you're entering exactly `y` or `n` (lowercase or uppercase) for yes/no prompts, and valid numbers for menu choices.
+
+## 🎮 Interactive Mode Options
+
+| Option | Description | When to Use |
+|--------|-------------|-------------|
+| **1. Full setup** | Creates Next.js + Git + GitHub + Vercel | Starting a brand new project |
+| **2. Next.js only** | Bootstraps Next.js project | You want to handle Git/GitHub manually |
+| **3. Git only** | Initializes Git repository | Adding version control to existing project |
+| **4. GitHub only** | Creates and pushes to GitHub | Publishing existing local project |
+| **5. Vercel only** | Deploys to Vercel | Deploying already-configured project |
+| **6. Exit** | Quits the program | Changed your mind |
 
 ## 🤝 Contributing
 
@@ -225,16 +336,6 @@ Contributions are welcome! Please follow these steps:
    ```
 5. **Open a Pull Request**
 
-### Development Setup
-
-```bash
-git clone https://github.com/yourusername/newnextjs.git
-cd newnextjs
-
-# Test locally
-./newnextjs test-project
-```
-
 ## 📝 License
 
 MIT License - see [LICENSE](LICENSE) file for details
@@ -247,28 +348,24 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 ## 📮 Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/newnextjs/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/newnextjs/discussions)
-- **Email**: your.email@example.com
+- **Issues**: [GitHub Issues](https://github.com/vehutech/nextjsinit/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/vehutech/nextjsinit/discussions)
 
 ## 🔮 Roadmap
 
-- [ ] Add template support (blog, e-commerce, dashboard)
-- [ ] Support for private/public repo selection via flag
-- [ ] Integration with other deployment platforms (Netlify, Railway)
-- [ ] Configuration file support (`.newnextjsrc`)
-- [ ] Database initialization options (Prisma, Supabase)
-- [ ] TypeScript/JavaScript preference prompt
+- [x] Smart component detection
+- [x] Interactive mode
+- [x] Public/private repo selection
+- [x] Input validation
+- [x] Vercel URL extraction
+- [ ] Template support (blog, e-commerce, dashboard)
+- [ ] Command-line flags (`--skip-github`, `--skip-vercel`, etc.)
+- [ ] Integration with other platforms (Netlify, Railway)
+- [ ] Configuration file support (`.nextjsinitrc`)
+- [ ] Database initialization (Prisma, Supabase)
 - [ ] Automated testing setup
 - [ ] CI/CD pipeline templates
 
-## 📊 Project Stats
-
-![GitHub stars](https://img.shields.io/github/stars/yourusername/newnextjs?style=social)
-![GitHub forks](https://img.shields.io/github/forks/yourusername/newnextjs?style=social)
-![GitHub issues](https://img.shields.io/github/issues/yourusername/newnextjs)
-![GitHub license](https://img.shields.io/github/license/yourusername/newnextjs)
-
 ---
 
-**Made with ❤️ by developers, for developers**
+**Made with ❤️ by vehutech, for developers**

@@ -3,44 +3,340 @@
 -- Base folder for all Next.js projects
 local baseDir = os.getenv("HOME") .. "/dev/nextjs"
 
--- Ensure the base folder exists
-os.execute("mkdir -p " .. baseDir)
+-- Utility functions
+local function trim(s)
+  return s:match("^%s*(.-)%s*$")
+end
 
--- Get project name from command-line argument
-local projectName = arg[1]
-if not projectName then
-    io.write("Usage: newnextjs <project-name>\n")
+local function fileExists(path)
+  local f = io.open(path, "r")
+  if f then
+    f:close()
+    return true
+  end
+  return false
+end
+
+local function dirExists(path)
+  local ok, err, code = os.rename(path, path)
+  if not ok then
+    if code == 13 then -- Permission denied, but exists
+      return true
+    end
+  end
+  return ok
+end
+
+local function commandExists(cmd)
+  local handle = io.popen("command -v " .. cmd .. " 2>/dev/null")
+  local result = handle:read("*a")
+  handle:close()
+  return result ~= ""
+end
+
+local function getYesNo(prompt)
+  while true do
+    io.write(prompt .. " (y/n): ")
+    local response = trim(io.read())
+    if response == "y" or response == "Y" then
+      return true
+    elseif response == "n" or response == "N" then
+      return false
+    else
+      print("❌ Invalid input. Please enter 'y' or 'n'.")
+    end
+  end
+end
+
+local function getChoice(prompt, options)
+  while true do
+    io.write(prompt .. "\n")
+    for i, option in ipairs(options) do
+      print(string.format("%d. %s", i, option))
+    end
+    io.write("\nEnter your choice (1-%d): ", #options)
+    local response = trim(io.read())
+    local choice = tonumber(response)
+    if choice and choice >= 1 and choice <= #options then
+      return choice
+    else
+      print("❌ Invalid choice. Please enter a number between 1 and " .. #options .. ".")
+    end
+  end
+end
+
+local function checkGitInit(path)
+  return dirExists(path .. "/.git")
+end
+
+local function checkNextJsProject(path)
+  return fileExists(path .. "/package.json") and fileExists(path .. "/next.config.js")
+end
+
+local function checkGithubRepo(projectName)
+  local handle = io.popen("gh repo view " .. projectName .. " 2>&1")
+  local result = handle:read("*a")
+  handle:close()
+  return not result:match("Could not resolve to a Repository")
+end
+
+local function checkVercelDeployment(path)
+  local handle = io.popen("cd \"" .. path .. "\" && vercel ls 2>&1")
+  local result = handle:read("*a")
+  handle:close()
+  return result:match(path:match("[^/]+$")) ~= nil
+end
+
+local function getCurrentProjectName()
+  local cwd = io.popen("pwd"):read("*a"):match("^%s*(.-)%s*$")
+  if cwd:match(baseDir) then
+    return cwd:match("([^/]+)$")
+  end
+  return nil
+end
+
+-- Core operations
+local function createNextJsProject(projectPath, projectName)
+  print("\n🚀 Creating Next.js project: " .. projectName)
+  local cmd = string.format("cd \"%s\" && npx create-next-app@latest ./", projectPath)
+  local success = os.execute(cmd)
+  if success == 0 or success == true then
+    print("✅ Next.js project created successfully!")
+    return true
+  else
+    print("❌ Failed to create Next.js project.")
+    return false
+  end
+end
+
+local function initGit(projectPath)
+  print("\n📦 Initializing Git repository...")
+  local cmd = string.format("cd \"%s\" && git init && git add . && git commit -m \"Initial Next.js setup\"", projectPath)
+  local success = os.execute(cmd)
+  if success == 0 or success == true then
+    print("✅ Git initialized successfully!")
+    return true
+  else
+    print("❌ Failed to initialize Git.")
+    return false
+  end
+end
+
+local function createGithubRepo(projectPath, projectName)
+  print("\n🐙 Creating GitHub repository...")
+  local visibility = getYesNo("Should the GitHub repository be public?") and "--public" or "--private"
+  local cmd = string.format("cd \"%s\" && gh repo create %s %s --source=. --remote=origin --push", 
+    projectPath, projectName, visibility)
+  local success = os.execute(cmd)
+  if success == 0 or success == true then
+    print("✅ GitHub repository created and pushed successfully!")
+    return true
+  else
+    print("❌ Failed to create GitHub repository.")
+    return false
+  end
+end
+
+local function deployToVercel(projectPath)
+  print("\n🌍 Deploying to Vercel...")
+  local cmd = string.format("cd \"%s\" && vercel --yes --prod --confirm", projectPath)
+  local handle = io.popen(cmd .. " 2>&1")
+  local output = handle:read("*a")
+  handle:close()
+  
+  print(output)
+  
+  -- Extract URL from output
+  local url = output:match("https://[%w%-%.]+%.vercel%.app")
+  if url then
+    print("\n✅ Successfully deployed to Vercel!")
+    print("🔗 URL: " .. url)
+    return true, url
+  else
+    print("❌ Vercel deployment completed but couldn't extract URL.")
+    return true, nil
+  end
+end
+
+-- Interactive mode menu
+local function interactiveMode(projectPath, projectName)
+  print("\n🎯 Interactive Mode")
+  print("📁 Current location: " .. (projectPath or io.popen("pwd"):read("*a"):match("^%s*(.-)%s*$")))
+  
+  local hasNextJs = projectPath and checkNextJsProject(projectPath)
+  local hasGit = projectPath and checkGitInit(projectPath)
+  local hasGithub = projectName and checkGithubRepo(projectName)
+  local hasVercel = projectPath and commandExists("vercel") and checkVercelDeployment(projectPath)
+  
+  print("\n📊 Current Status:")
+  print("  Next.js Project: " .. (hasNextJs and "✅" or "❌"))
+  print("  Git Initialized: " .. (hasGit and "✅" or "❌"))
+  print("  GitHub Repo: " .. (hasGithub and "✅" or "❌"))
+  print("  Vercel Deployed: " .. (hasVercel and "✅" or "❌"))
+  
+  local options = {
+    "Full setup (Next.js + Git + GitHub + Vercel)",
+    "Next.js project bootstrapping only",
+    "Git initialization only",
+    "GitHub repository creation only",
+    "Vercel deployment only",
+    "Exit"
+  }
+  
+  local choice = getChoice("\nWhat would you like to do?", options)
+  
+  if choice == 1 then
+    -- Full setup
+    if not hasNextJs then createNextJsProject(projectPath, projectName) end
+    if not hasGit then initGit(projectPath) end
+    if not hasGithub then createGithubRepo(projectPath, projectName) end
+    if commandExists("vercel") and getYesNo("\nDeploy to Vercel?") then
+      deployToVercel(projectPath)
+    end
+  elseif choice == 2 then
+    if hasNextJs then
+      print("⚠️  Next.js project already exists!")
+    else
+      createNextJsProject(projectPath, projectName)
+    end
+  elseif choice == 3 then
+    if hasGit then
+      print("⚠️  Git is already initialized!")
+    else
+      initGit(projectPath)
+    end
+  elseif choice == 4 then
+    if hasGithub then
+      print("⚠️  GitHub repository already exists!")
+    else
+      if not hasGit then
+        print("⚠️  Git not initialized. Initializing first...")
+        initGit(projectPath)
+      end
+      createGithubRepo(projectPath, projectName)
+    end
+  elseif choice == 5 then
+    if not commandExists("vercel") then
+      print("❌ Vercel CLI not found. Install it with: npm install -g vercel")
+      return
+    end
+    if hasVercel then
+      if getYesNo("⚠️  Project might already be deployed. Deploy again?") then
+        deployToVercel(projectPath)
+      end
+    else
+      deployToVercel(projectPath)
+    end
+  elseif choice == 6 then
+    print("👋 Goodbye!")
+    os.exit(0)
+  end
+end
+
+-- Main execution
+local function main()
+  -- Ensure base directory exists
+  os.execute("mkdir -p " .. baseDir)
+  
+  -- Check for required tools
+  if not commandExists("gh") then
+    print("❌ GitHub CLI (gh) not found. Install it first!")
+    print("   macOS: brew install gh")
+    print("   Ubuntu: sudo apt install gh")
     os.exit(1)
+  end
+  
+  local projectName = arg[1]
+  
+  -- No argument provided - check if we're in a project
+  if not projectName then
+    local currentProject = getCurrentProjectName()
+    if currentProject then
+      print("🔍 Detected current project: " .. currentProject)
+      interactiveMode(baseDir .. "/" .. currentProject, currentProject)
+    else
+      print("🤔 No project name provided and not in a Next.js project directory.")
+      io.write("\nEnter project name: ")
+      projectName = trim(io.read())
+      if projectName == "" then
+        print("❌ Project name cannot be empty.")
+        os.exit(1)
+      end
+      local projectPath = baseDir .. "/" .. projectName
+      
+      -- Check if project directory exists
+      if dirExists(projectPath) then
+        print("📁 Project directory already exists: " .. projectPath)
+        interactiveMode(projectPath, projectName)
+      else
+        print("📁 Creating new project directory...")
+        os.execute("mkdir -p \"" .. projectPath .. "\"")
+        interactiveMode(projectPath, projectName)
+      end
+    end
+    return
+  end
+  
+  -- Project name provided
+  local projectPath = baseDir .. "/" .. projectName
+  
+  print("\n🚀 Initializing project: " .. projectName)
+  print("📁 Location: " .. projectPath .. "\n")
+  
+  -- Check if directory exists
+  local dirAlreadyExists = dirExists(projectPath)
+  if dirAlreadyExists then
+    print("📁 Project directory already exists.")
+  else
+    print("📁 Creating project directory...")
+    os.execute("mkdir -p \"" .. projectPath .. "\"")
+  end
+  
+  -- Check existing components
+  local hasNextJs = checkNextJsProject(projectPath)
+  local hasGit = checkGitInit(projectPath)
+  local hasGithub = checkGithubRepo(projectName)
+  
+  -- Next.js setup
+  if hasNextJs then
+    print("⚠️  Next.js project already exists, skipping creation.")
+  else
+    if not createNextJsProject(projectPath, projectName) then
+      os.exit(1)
+    end
+  end
+  
+  -- Git initialization
+  if hasGit then
+    print("⚠️  Git already initialized, skipping.")
+  else
+    if not initGit(projectPath) then
+      os.exit(1)
+    end
+  end
+  
+  -- GitHub repository
+  if hasGithub then
+    print("⚠️  GitHub repository already exists, skipping creation.")
+  else
+    if not createGithubRepo(projectPath, projectName) then
+      print("⚠️  Continuing without GitHub repository...")
+    end
+  end
+  
+  -- Vercel deployment
+  if commandExists("vercel") then
+    if getYesNo("\nWould you like to deploy this project to Vercel now?") then
+      deployToVercel(projectPath)
+    else
+      print("\n🛑 Skipping Vercel deployment.\n")
+    end
+  else
+    print("\n⚠️  Vercel CLI not found. Skipping deployment.")
+    print("   Install with: npm install -g vercel\n")
+  end
+  
+  print("✅ Project '" .. projectName .. "' setup complete!\n")
 end
 
--- Full path for the new project
-local projectPath = baseDir .. "/" .. projectName
-
-print("\n🚀 Creating new Next.js project: " .. projectName)
-print("📁 Location: " .. projectPath .. "\n")
-
--- Step 1: Create folder, scaffold Next.js, Git init & push to GitHub
-local createCommand = string.format([[
-  mkdir -p "%s" && cd "%s" && \
-  npx create-next-app@latest ./ && \
-  git init && git add . && git commit -m "Initial Next.js setup" && \
-  gh repo create %s --private --source=. --remote=origin --push
-]], projectPath, projectPath, projectName)
-
-os.execute(createCommand)
-
--- Step 2: Ask if user wants to deploy to Vercel
-io.write("\nWould you like to deploy this project to Vercel now? (y/n): ")
-local deployChoice = io.read()
-
-if deployChoice == "y" or deployChoice == "Y" then
-    print("\n🌍 Deploying to Vercel...\n")
-    local vercelCommand = string.format("cd \"%s\" && vercel --yes --prod --confirm", projectPath)
-    os.execute(vercelCommand)
-    print("\n✅ Successfully deployed to Vercel!\n")
-else
-    print("\n🛑 Skipping Vercel deployment.\n")
-end
-
-print("✅ Project '" .. projectName .. "' created and pushed to GitHub successfully!\n")
-
+main()

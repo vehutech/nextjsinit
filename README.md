@@ -474,5 +474,3 @@ MIT License - see [LICENSE](LICENSE) file for details
 - [ ] Environment variable management
 
 ---
-
-**Made with ❤️ by vehutech, for developers**
